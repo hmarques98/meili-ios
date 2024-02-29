@@ -16,4 +16,10 @@ jobs:
           echo "Artifact Name: ${{ github.event.client_payload.artifact_name }}"
           echo "Version: ${{ github.event.client_payload.version }}"
           
-      # Add steps to download the artifact using the retrieved information
+      - name: Download Artifact
+        run: |
+          ARTIFACT_NAME="${{ github.event.client_payload.artifact_name }}"
+          VERSION="${{ github.event.client_payload.version }}"
+          ARTIFACT_DOWNLOAD_URL="https://github.com/hmarques98/meili-ios-sdk/actions/runs/${{ github.run_id }}/artifacts/${{ env.ARTIFACT_NAME }}"
+          echo "Downloading artifact $ARTIFACT_NAME for version $VERSION"
+          curl -sSL -o $ARTIFACT_NAME $ARTIFACT_DOWNLOAD_URL
