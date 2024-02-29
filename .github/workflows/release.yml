@@ -11,23 +11,29 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v2
 
-      - name: Fetch Artifact Details and Download
-        env:
-          GITHUB_TOKEN: ${{ secrets.PAT }}
-          SOURCE_REPO: 'hmarques98/meili-ios-sdk' # Source repository from which to fetch the artifact
-          ARTIFACT_NAME: ${{ github.event.client_payload.artifact_name }} # Expected to be passed from the source repository
+      - name: Get Artifact ID
+        id: get_artifact_id
         run: |
-          ARTIFACTS_URL="https://api.github.com/repos/$SOURCE_REPO/actions/artifacts"
-          ARTIFACT_DOWNLOAD_URL=$(curl -s -H "Authorization: Bearer $GITHUB_TOKEN" $ARTIFACTS_URL | jq -r ".artifacts[] | select(.name==\"$ARTIFACT_NAME\") | .archive_download_url")
+          ARTIFACT_ID=$(curl -s "https://api.github.com/repos/${{ github.repository }}/actions/runs/${{ github.run_id }}/artifacts" | jq -r '.artifacts[0].id')
+          echo "::set-output name=artifact_id::$ARTIFACT_ID"
 
-          if [ -z "$ARTIFACT_DOWNLOAD_URL" ] || [ "$ARTIFACT_DOWNLOAD_URL" = "null" ]; then
-            echo "Artifact $ARTIFACT_NAME not found."
-            exit 1
-          fi
+      - name: Get Artifact Download URL
+        id: get_artifact_url
+        run: |
+          ARTIFACT_ID=$(echo "${{ steps.get_artifact_id.outputs.artifact_id }}")
+          ARTIFACT_DOWNLOAD_URL=$(curl -s "https://api.github.com/repos/${{ github.repository }}/actions/artifacts/${ARTIFACT_ID}/zip" | jq -r '.archive_download_url')
+          echo "::set-output name=url::$ARTIFACT_DOWNLOAD_URL"
 
-          echo "Downloading artifact from $ARTIFACT_DOWNLOAD_URL"
-          curl -L -o artifact.zip -H "Authorization: Bearer $GITHUB_TOKEN" "$ARTIFACT_DOWNLOAD_URL"
-          echo "Artifact downloaded successfully"
+      - name: Download artifact
+        run: |
+          DOWNLOAD_URL=$(echo "${{ steps.get_artifact_url.outputs.url }}")
+          curl -L -o artifact.zip "$DOWNLOAD_URL"
+
+      - name: See what we downloaded
+        run: ls
+
+      - name: Inspect content
+        run: unzip -l artifact.zip
 
       - name: Create a Release
         id: create_release
