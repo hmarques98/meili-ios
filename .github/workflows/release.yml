@@ -17,11 +17,13 @@ jobs:
           echo "Version: ${{ github.event.client_payload.version }}"
 
       - name: Download Artifact
-        run: gh run download ${{ env.RUN_ID }}
-        env:
-          RUN_ID: ${{ github.event.client_payload.run_id }}
-          ARTIFACT_NAME: ${{ github.event.client_payload.artifact_name }}
-          GH_TOKEN: ${{ secrets.PAT }}
+        run: |
+          ARTIFACT_NAME="${{ github.event.client_payload.artifact_name }}"
+          VERSION="${{ github.event.client_payload.version }}"
+          ARTIFACT_URL="${{ github.event.client_payload.artifact_url }}"
+          echo "Downloading artifact $ARTIFACT_NAME for version $VERSION"
+          curl -sSL -o $ARTIFACT_NAME $ARTIFACT_URL
+
           
       - name: Create a Release
         id: create_release
