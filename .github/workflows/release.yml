@@ -1,14 +1,14 @@
-name: Download Artifact
+name: Download Artifact, Create Release, and Upload Artifact
 
 on:
   repository_dispatch:
     types: [create-release]
 
 jobs:
-  downloadArtifact:
+  processReleaseAndUploadArtifact:
     runs-on: ubuntu-latest
     steps:
-      - name: Check out code
+      - name: Checkout code
         uses: actions/checkout@v2
 
       - name: Get Artifact Info
@@ -20,6 +20,26 @@ jobs:
         run: |
           ARTIFACT_NAME="${{ github.event.client_payload.artifact_name }}"
           VERSION="${{ github.event.client_payload.version }}"
-          ARTIFACT_DOWNLOAD_URL="https://github.com/hmarques98/meili-ios-sdk/actions/runs/${{ github.run_id }}/artifacts/${{ env.ARTIFACT_NAME }}"
+          ARTIFACT_ID="${{ github.run_id }}"
+          ARTIFACT_DOWNLOAD_URL="https://github.com/hmarques98/meili-ios-sdk/actions/runs/${ARTIFACT_ID}/artifacts/${ARTIFACT_NAME}"
+
           echo "Downloading artifact $ARTIFACT_NAME for version $VERSION"
           curl -sSL -o $ARTIFACT_NAME $ARTIFACT_DOWNLOAD_URL
+
+      - name: Create a Release
+        id: create_release
+        uses: actions/create-release@v1
+        with:
+          tag_name: v${{ github.event.client_payload.version }}
+          release_name: v${{ github.event.client_payload.version }} Release
+          draft: false
+          prerelease: false
+          body: "Release for version ${{ github.event.client_payload.version }}"
+        
+      - name: Upload Artifact to the Release
+        uses: actions/upload-release-asset@v1
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./${{ github.event.client_payload.artifact_name }}
+          asset_name: ${{ github.event.client_payload.artifact_name }}
+          asset_content_type: application/zip
