@@ -19,10 +19,10 @@ jobs:
       - name: Download Artifact
         uses: actions/download-artifact@v4
         with:
-          name: ${{ github.event.client_payload.artifact_name }}
-          github-token: ${{ secrets.PAT }}
-          repository: hmarques98/meili-ios-sdk
-          run-id: ${{ github.run_id }}
+          name: ${{ steps.trigger_meili_workflow.outputs.artifact_name }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          repository: hmarques98/meili-ios
+          run-id: ${{ steps.trigger_meili_workflow.outputs.run_id }}
 
       - name: Create a Release
         id: create_release
