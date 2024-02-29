@@ -1,17 +1,33 @@
-name: Handle External Trigger
+name: Handle External Trigger and Upload Artifact
 
 on:
   repository_dispatch:
     types: [create-release]
 
 jobs:
-  createRelease:
+  processReleaseAndUploadArtifact:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
-      
-      # Add steps to download the artifact from a shared location or directly from the source repo (if possible)
+
+      - name: Fetch Artifact Details and Download
+        env:
+          GITHUB_TOKEN: ${{ secrets.PAT }}
+          SOURCE_REPO: 'hmarques98/meili-ios-sdk' # Source repository from which to fetch the artifact
+          ARTIFACT_NAME: ${{ github.event.client_payload.artifact_name }} # Expected to be passed from the source repository
+        run: |
+          ARTIFACTS_URL="https://api.github.com/repos/$SOURCE_REPO/actions/artifacts"
+          ARTIFACT_DOWNLOAD_URL=$(curl -s -H "Authorization: Bearer $GITHUB_TOKEN" $ARTIFACTS_URL | jq -r ".artifacts[] | select(.name==\"$ARTIFACT_NAME\") | .archive_download_url")
+
+          if [ -z "$ARTIFACT_DOWNLOAD_URL" ] || [ "$ARTIFACT_DOWNLOAD_URL" = "null" ]; then
+            echo "Artifact $ARTIFACT_NAME not found."
+            exit 1
+          fi
+
+          echo "Downloading artifact from $ARTIFACT_DOWNLOAD_URL"
+          curl -L -o artifact.zip -H "Authorization: Bearer $GITHUB_TOKEN" "$ARTIFACT_DOWNLOAD_URL"
+          echo "Artifact downloaded successfully"
 
       - name: Create a Release
         id: create_release
@@ -24,5 +40,13 @@ jobs:
           body: "Description of the release"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          
-      # Additional step to upload an artifact to the release if necessary
+
+      - name: Upload Artifact to the Release
+        uses: actions/upload-release-asset@v1
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./artifact.zip
+          asset_name: ${{ github.event.client_payload.artifact_name }}
+          asset_content_type: application/zip
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
