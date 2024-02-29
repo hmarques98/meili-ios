@@ -35,6 +35,8 @@ jobs:
           draft: false
           prerelease: false
           body: "Release for version ${{ github.event.client_payload.version }}"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         
       - name: Upload Artifact to the Release
         uses: actions/upload-release-asset@v1
