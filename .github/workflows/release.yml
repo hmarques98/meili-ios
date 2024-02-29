@@ -1,58 +1,19 @@
-name: Handle External Trigger and Upload Artifact
+name: Download Artifact
 
 on:
   repository_dispatch:
     types: [create-release]
 
 jobs:
-  processReleaseAndUploadArtifact:
+  downloadArtifact:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout code
+      - name: Check out code
         uses: actions/checkout@v2
 
-      - name: Get Artifact ID
-        id: get_artifact_id
+      - name: Get Artifact Info
         run: |
-          ARTIFACT_ID=$(curl -s "https://api.github.com/repos/${{ github.repository }}/actions/runs/${{ github.run_id }}/artifacts" | jq -r '.artifacts[0].id')
-          echo "::set-output name=artifact_id::$ARTIFACT_ID"
-
-      - name: Get Artifact Download URL
-        id: get_artifact_url
-        run: |
-          ARTIFACT_ID=$(echo "${{ steps.get_artifact_id.outputs.artifact_id }}")
-          ARTIFACT_DOWNLOAD_URL=$(curl -s "https://api.github.com/repos/${{ github.repository }}/actions/artifacts/${ARTIFACT_ID}/zip" | jq -r '.archive_download_url')
-          echo "::set-output name=url::$ARTIFACT_DOWNLOAD_URL"
-
-      - name: Download artifact
-        run: |
-          DOWNLOAD_URL=$(echo "${{ steps.get_artifact_url.outputs.url }}")
-          curl -L -o artifact.zip "$DOWNLOAD_URL"
-
-      - name: See what we downloaded
-        run: ls
-
-      - name: Inspect content
-        run: unzip -l artifact.zip
-
-      - name: Create a Release
-        id: create_release
-        uses: actions/create-release@v1
-        with:
-          tag_name: ${{ github.event.client_payload.tag_name }}
-          release_name: Release ${{ github.event.client_payload.release_name }}
-          draft: false
-          prerelease: false
-          body: "Description of the release"
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Upload Artifact to the Release
-        uses: actions/upload-release-asset@v1
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./artifact.zip
-          asset_name: ${{ github.event.client_payload.artifact_name }}
-          asset_content_type: application/zip
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          echo "Artifact Name: ${{ github.event.client_payload.artifact_name }}"
+          echo "Version: ${{ github.event.client_payload.version }}"
+          
+      # Add steps to download the artifact using the retrieved information
