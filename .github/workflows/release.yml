@@ -15,6 +15,7 @@ jobs:
         run: |
           echo "Artifact Name: ${{ github.event.client_payload.artifact_name }}"
           echo "Version: ${{ github.event.client_payload.version }}"
+          echo "ARTIFACT_URL: ${{ github.event.client_payload.artifact_url }}"
 
       - name: Download Artifact
         run: |
