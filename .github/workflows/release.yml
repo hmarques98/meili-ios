@@ -15,14 +15,14 @@ jobs:
         run: |
           echo "Artifact Name: ${{ github.event.client_payload.artifact_name }}"
           echo "Version: ${{ github.event.client_payload.version }}"
-          
+
       - name: Download Artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: ${{ github.event.client_payload.artifact_name }}
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          repository: hmarques98/meili-ios
-          run-id: ${{ github.event.client_payload.run_id }}
+        run: gh run download ${{ env.RUN_ID }} -n ${{ env.ARTIFACT_NAME }}
+        env:
+          RUN_ID: ${{ github.event.client_payload.run_id }}
+          ARTIFACT_NAME: ${{ github.event.client_payload.artifact_name }}
+          GH_TOKEN: ${{ secrets.PAT }}
+          
       - name: Create a Release
         id: create_release
         uses: actions/create-release@v1
